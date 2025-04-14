@@ -1,0 +1,12 @@
+specVersion: "v1"
+serviceId: "todo-listaca"
+location: "us-central1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "fdcdb"
+      cloudSql:
+        instanceId: "todo-listaca-fdc"
+      # schemaValidation: "COMPATIBLE"
+connectorDirs: ["./connector"]
