@@ -54,7 +54,7 @@ export default function TodoList() {
     const now = new Date().getTime();
     const difference = deadlineTime - now;
 
-    if (difference <= 0) return "Waktu habis!";
+    if (difference <= 0) return "Waktu habis";
 
     const hours = Math.floor(difference / (1000 * 60 * 60));
     const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
@@ -65,14 +65,28 @@ export default function TodoList() {
 
   const addTask = async (): Promise<void> => {
     const { value: formValues } = await Swal.fire({
-      title: "Tambahkan tugas baru",
+      title: "Tambah Tugas",
       html:
-        '<input id="swal-input1" class="swal2-input" placeholder="Nama tugas">' +
+        '<input id="swal-input1" class="swal2-input" placeholder="Judul Tugas">' +
         '<input id="swal-input2" type="datetime-local" class="swal2-input">',
       focusConfirm: false,
       showCancelButton: true,
-      confirmButtonText: "Tambah",
+      confirmButtonText: "Simpan",
       cancelButtonText: "Batal",
+      buttonsStyling: false,
+      customClass: {
+        popup: "swal2-fade",
+        confirmButton:
+          "bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-4 py-2 rounded mr-2",
+        cancelButton:
+          "bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded",
+      },
+      showClass: {
+        popup: "transition-opacity duration-500 ease-out opacity-100",
+      },
+      hideClass: {
+        popup: "transition-opacity duration-300 ease-in opacity-0",
+      },
       preConfirm: () => {
         return [
           (document.getElementById("swal-input1") as HTMLInputElement)?.value,
@@ -88,7 +102,7 @@ export default function TodoList() {
         deadline: formValues[1],
       };
       const docRef = await addDoc(collection(db, "tasks"), newTask);
-      setTasks([...tasks, { id: docRef.id, ...newTask }]);
+      setTasks((prev) => [...prev, { id: docRef.id, ...newTask }]);
     }
   };
 
@@ -108,22 +122,83 @@ export default function TodoList() {
     setTasks(tasks.filter((task) => task.id !== id));
   };
 
+  const editTask = async (task: Task): Promise<void> => {
+    const { value: formValues } = await Swal.fire({
+      title: "Edit Tugas",
+      html:
+        `<input id="swal-input1" class="swal2-input" placeholder="Nama tugas" value="${task.text}">` +
+        `<input id="swal-input2" type="datetime-local" class="swal2-input" value="${task.deadline.slice(
+          0,
+          16
+        )}">`,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Simpan",
+      cancelButtonText: "Batal",
+      buttonsStyling: false,
+      customClass: {
+        popup: "swal2-fade",
+        confirmButton:
+          "bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-4 py-2 rounded mr-2",
+        cancelButton:
+          "bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded",
+      },
+      showClass: {
+        popup: "transition-opacity duration-500 ease-out opacity-100",
+      },
+      hideClass: {
+        popup: "transition-opacity duration-300 ease-in opacity-0",
+      },
+      preConfirm: () => {
+        return [
+          (document.getElementById("swal-input1") as HTMLInputElement)?.value,
+          (document.getElementById("swal-input2") as HTMLInputElement)?.value,
+        ];
+      },
+    });
+
+    if (formValues && formValues[0] && formValues[1]) {
+      const updatedTask = {
+        text: formValues[0],
+        deadline: formValues[1],
+      };
+
+      const taskRef = doc(db, "tasks", task.id);
+      await updateDoc(taskRef, updatedTask);
+
+      setTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, ...updatedTask } : t))
+      );
+    }
+  };
+
   return (
-    <div className="max-w-md mx-auto mt-10 p-4 bg-white shadow-md rounded-lg">
-      <h1 className="text-2xl text-emerald-500 font-bold mb-4">To-Do List</h1>
-      <div className="flex justify-center mb-4">
-        <button
+    <div className="max-w-xl mx-auto mt-10 p-6 bg-white shadow-xl rounded-2xl border border-gray-200">
+      <motion.h1
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-3xl font-bold text-center text-emerald-600 mb-6"
+      >
+        Simple To-do List
+      </motion.h1>
+
+      <div className="flex justify-center mb-5">
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }}
           onClick={addTask}
-          className="bg-slate-500 text-white px-4 py-2 rounded"
+          className="bg-emerald-500 text-white font-semibold px-5 py-2 rounded-lg shadow hover:bg-emerald-600 transition"
         >
-          Tambah Tugas
-        </button>
+          + Tambah Tugas
+        </motion.button>
       </div>
-      <ul>
+
+      <ul className="space-y-3">
         <AnimatePresence>
           {tasks.map((task) => {
             const timeLeft = calculateTimeRemaining(task.deadline);
-            const isExpired = timeLeft === "Waktu habis!";
+            const isExpired = timeLeft === "Waktu habis";
             const taskColor = task.completed
               ? "bg-green-200"
               : isExpired
@@ -133,41 +208,59 @@ export default function TodoList() {
             return (
               <motion.li
                 key={task.id}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.3 }}
-                className={`flex flex-col justify-between p-2 border-b rounded-lg ${taskColor}`}
+                className={`p-4 rounded-xl shadow flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 ${taskColor}`}
               >
-                <div className="flex justify-between items-center">
-                  <span
-                    onClick={() => toggleTask(task.id)}
-                    className={`cursor-pointer transition-500 ${
+                <div
+                  className="flex-1 cursor-pointer"
+                  onClick={() => toggleTask(task.id)}
+                >
+                  <p
+                    className={`text-lg font-medium transition-all ${
                       task.completed
-                        ? "line-through text-gray-500"
-                        : "font-semibold text-gray-700"
+                        ? "line-through text-gray-400"
+                        : "text-gray-800"
                     }`}
                   >
                     {task.text}
-                  </span>
-                  <button
-                    onClick={() => deleteTask(task.id)}
-                    className="text-white p-1 rounded bg-red-600 hover:bg-red-800"
-                  >
-                    Hapus
-                  </button>
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Deadline: {new Date(task.deadline).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-600 font-semibold">
+                    ⏳ {timeRemaining[task.id] || "Menghitung..."}
+                  </p>
                 </div>
-                <p className="text-sm text-gray-700">
-                  Deadline: {new Date(task.deadline).toLocaleString()}
-                </p>
-                <p className="text-xs font-semibold text-gray-700">
-                  ⏳ {timeRemaining[task.id] || "Menghitung..."}
-                </p>
+
+                <div className="flex gap-2">
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => editTask(task)}
+                    className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition"
+                  >
+                    ✏️
+                  </motion.button>
+
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => deleteTask(task.id)}
+                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition"
+                  >
+                    🗑️
+                  </motion.button>
+                </div>
               </motion.li>
             );
           })}
         </AnimatePresence>
       </ul>
+
+      <footer className="mt-8 text-center text-sm text-gray-500 border-t pt-4">
+        &copy; 2025 rasya.permataatmaja. All rights reserved.
+      </footer>
     </div>
   );
 }
