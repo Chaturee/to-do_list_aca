@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
+    "@genkit-ai/vertexai": "^1.6.0",
     "firebase": "^11.6.0",
     "framer-motion": "^12.6.5",
+    "genkit": "^1.6.0",
     "next": "15.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
